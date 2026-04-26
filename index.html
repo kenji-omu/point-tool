@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ポイント計算ツール</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f2f2f7; }
+
+/* ── ヘッダー ── */
+.header { background: #1c1c1e; padding: 14px 14px 12px; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.header-title { color: #fff; font-size: 18px; font-weight: 700; }
+.edit-btn { background: #3a3a3c; color: #ccc; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.badge-red { background: #ff3b30; color: #fff; }
+.badge-blue { background: #0a84ff; color: #fff; }
+
+/* ── セクション ── */
+.section { padding: 13px 13px 0; }
+.sec-lbl { font-size: 11px; font-weight: 700; color: #8e8e93; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+
+/* ── キャリア ── */
+.carrier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.carrier-btn { padding: 15px 2px; border: 3px solid transparent; border-radius: 12px; font-size: 14px; font-weight: 800; color: #fff; cursor: pointer; text-align: center; }
+.carrier-btn:active { opacity: 0.8; }
+.carrier-btn.sel { border-color: #ffd60a; }
+.c-docomo { background: #e60012; }
+.c-au     { background: #ea5504; }
+.c-sb     { background: #3a3a3c; }
+.c-ym     { background: #b5006e; }
+.c-uq     { background: #0095d9; }
+
+/* ── 信賞店舗バー ── */
+.shinsho-bar { background: #fff8dc; border: 2px solid #ffc83d; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.shinsho-bar.on { background: #d4f7e0; border-color: #30d158; }
+.sw { width: 50px; height: 28px; background: #ccc; border-radius: 14px; position: relative; flex-shrink: 0; transition: background 0.2s; }
+.sw.on { background: #30d158; }
+.sw::after { content: ''; position: absolute; width: 24px; height: 24px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s; }
+.sw.on::after { transform: translateX(22px); }
+.shinsho-main { font-size: 15px; font-weight: 700; }
+.shinsho-sub { font-size: 11px; color: #666; margin-top: 2px; }
+
+/* ── 前提条件 ── */
+.prereq-box { background: #fff8dc; border: 2px solid #ffc83d; border-radius: 12px; overflow: hidden; }
+.prereq-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; cursor: pointer; }
+.prereq-row:not(:last-child) { border-bottom: 1px solid #ffe08a; }
+.chk { width: 30px; height: 30px; border: 2px solid #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: #fff; }
+.chk.on { background: #30d158; border-color: #30d158; color: #fff; }
+.prereq-main { font-size: 15px; font-weight: 700; }
+.prereq-sub { font-size: 11px; color: #777; margin-top: 2px; }
+
+/* ── 条件カード ── */
+.cond-list { display: flex; flex-direction: column; gap: 7px; }
+.cond-card { background: #fff; border-radius: 12px; border: 2px solid transparent; overflow: hidden; cursor: pointer; }
+.cond-card:active { opacity: 0.85; }
+.cond-card.on { border-color: #30d158; background: #f0fff5; }
+.cond-card.off-na, .cond-card.off-zero { opacity: 0.38; pointer-events: none; }
+.cond-card.off-req { opacity: 0.45; pointer-events: none; }
+
+.cond-row { display: flex; align-items: center; gap: 11px; padding: 13px 14px; }
+.cond-chk { width: 30px; height: 30px; border: 2px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.cond-card.on .cond-chk { background: #30d158; border-color: #30d158; color: #fff; }
+.cond-info { flex: 1; }
+.cond-name { font-size: 15px; font-weight: 700; }
+.cond-note { font-size: 11px; color: #888; margin-top: 2px; line-height: 1.4; }
+.pts { font-size: 21px; font-weight: 800; color: #ff3b30; flex-shrink: 0; }
+.pts.zero { color: #c7c7cc; font-size: 14px; font-weight: 500; }
+.pts.na { color: #ddd; font-size: 13px; font-weight: 400; }
+
+/* ── サブ行（台数/でんき） ── */
+.sub-row { display: none; background: #f7f7f7; padding: 10px 14px; border-top: 1px solid #e5e5ea; align-items: center; gap: 10px; }
+.sub-row.show { display: flex; }
+.sub-lbl { font-size: 13px; color: #555; flex: 1; }
+.sub-num { width: 62px; padding: 7px; font-size: 19px; font-weight: 700; text-align: center; border: 2px solid #ccc; border-radius: 8px; background: #fff; }
+.sub-unit { font-size: 13px; color: #555; }
+.sub-chk { width: 30px; height: 30px; border: 2px solid #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; background: #fff; }
+.sub-chk.on { background: #30d158; border-color: #30d158; color: #fff; }
+
+/* ── 合計バー ── */
+.total-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #1c1c1e; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 20px rgba(0,0,0,0.5); }
+.total-lbl { color: #8e8e93; font-size: 12px; }
+.total-carrier { color: #fff; font-size: 17px; font-weight: 800; margin-top: 2px; }
+.total-num { color: #ffd60a; font-size: 40px; font-weight: 800; line-height: 1; }
+.total-unit { color: #8e8e93; font-size: 15px; margin-left: 3px; }
+.reset-btn { background: #3a3a3c; color: #8e8e93; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; margin-left: 8px; }
+
+.bottom-pad { height: 90px; }
+.placeholder { text-align: center; color: #aaa; font-size: 16px; padding: 40px 16px; line-height: 2; }
+
+/* ── 設定画面 ── */
+#settings-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f2f2f7; overflow-y: auto; z-index: 200; transform: translateX(100%); transition: transform 0.28s ease; }
+#settings-screen.open { transform: translateX(0); }
+.s-header { background: #1c1c1e; padding: 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+.back-btn { background: #3a3a3c; color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 14px; cursor: pointer; }
+.s-header h2 { color: #fff; font-size: 17px; font-weight: 700; }
+.s-saved { color: #30d158; font-size: 13px; margin-left: auto; opacity: 0; transition: opacity 0.3s; }
+.s-saved.show { opacity: 1; }
+
+.s-block { background: #fff; border-radius: 12px; margin: 13px 13px 0; overflow: hidden; }
+.s-block-title { padding: 8px 14px; font-size: 12px; font-weight: 700; color: #8e8e93; letter-spacing: 0.5px; text-transform: uppercase; }
+.s-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #f0f0f0; }
+.s-row:last-child { border-bottom: none; }
+.s-row-lbl { flex: 1; }
+.s-row-lbl .m { font-size: 15px; color: #1c1c1e; }
+.s-row-lbl .n { font-size: 11px; color: #8e8e93; margin-top: 2px; }
+.s-input { width: 96px; padding: 8px 10px; font-size: 17px; font-weight: 700; text-align: right; border: 2px solid #e5e5ea; border-radius: 8px; color: #1c1c1e; }
+.s-input:focus { border-color: #0a84ff; outline: none; }
+.s-date { width: 160px; padding: 8px 10px; font-size: 15px; border: 2px solid #e5e5ea; border-radius: 8px; color: #1c1c1e; }
+.s-date:focus { border-color: #0a84ff; outline: none; }
+.s-bottom-pad { height: 40px; }
+
+.dt { background: #ffe8e8; }
+.dau { background: #ffeedd; }
+.dsb { background: #eaeaea; }
+.dym { background: #fce4f4; }
+.duq { background: #ddeeff; }
+</style>
+</head>
+<body>
+
+<!-- ═══ メイン画面 ═══ -->
+<div id="main-screen">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title">📱 ポイント計算ツール</div>
+      <button class="edit-btn" onclick="openSettings()">✏️ 数値を編集</button>
+    </div>
+    <div class="badges">
+      <span class="badge badge-red">期限：<span id="deadline-disp"></span></span>
+      <span class="badge badge-blue">MNP前提</span>
+    </div>
+  </div>
+
+  <!-- キャリア -->
+  <div class="section" style="margin-top:14px;">
+    <div class="sec-lbl">① キャリアを選択</div>
+    <div class="carrier-grid">
+      <button class="carrier-btn c-docomo" onclick="selectCarrier('docomo')">ドコモ</button>
+      <button class="carrier-btn c-au"     onclick="selectCarrier('au')">AU</button>
+      <button class="carrier-btn c-sb"     onclick="selectCarrier('sb')">SB</button>
+      <button class="carrier-btn c-ym"     onclick="selectCarrier('ym')">YM</button>
+      <button class="carrier-btn c-uq"     onclick="selectCarrier('uq')">UQ</button>
+    </div>
+  </div>
+
+  <!-- 信賞店舗（ドコモのみ） -->
+  <div id="shinsho-section" class="section" style="margin-top:11px; display:none;">
+    <div id="shinsho-bar" class="shinsho-bar" onclick="toggleShinsho()">
+      <div class="sw" id="shinsho-sw"></div>
+      <div>
+        <div class="shinsho-main" id="shinsho-main">通常店舗</div>
+        <div class="shinsho-sub" id="shinsho-sub">信賞店舗に切替で②光・⑥家電が増額</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 前提条件 -->
+  <div class="section" style="margin-top:11px;">
+    <div class="sec-lbl">② 前提条件（どちらか一方でOP加入可）</div>
+    <div class="prereq-box">
+      <div class="prereq-row" onclick="togglePrereq('bunkatsu')">
+        <div class="chk" id="pi-bunkatsu"></div>
+        <div>
+          <div class="prereq-main">ノジマ分割（分割リセット）</div>
+          <div class="prereq-sub">ノジマで分割払いを組む</div>
+        </div>
+      </div>
+      <div class="prereq-row" onclick="togglePrereq('shitadori')">
+        <div class="chk" id="pi-shitadori"></div>
+        <div>
+          <div class="prereq-main">端末下取りあり</div>
+          <div class="prereq-sub">①OP加入に必要（どちらか一方で可）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 条件リスト -->
+  <div class="section" style="margin-top:11px;">
+    <div class="sec-lbl">③ 追加条件（タップでON/OFF）</div>
+    <div class="cond-list" id="cond-list">
+      <div class="placeholder">⬆️ まずキャリアを選択してください</div>
+    </div>
+  </div>
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- ═══ 設定画面 ═══ -->
+<div id="settings-screen">
+  <div class="s-header">
+    <button class="back-btn" onclick="closeSettings()">← 保存して戻る</button>
+    <h2>数値を編集</h2>
+    <span class="s-saved" id="saved-msg">保存済み ✓</span>
+  </div>
+
+  <!-- 期限 -->
+  <div class="s-block" style="margin-top:18px;">
+    <div class="s-block-title">施策期限</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">期限のテキスト</div><div class="n">例：27日（月）</div></div>
+      <input class="s-date" id="s-deadline" type="text" placeholder="27日（月）">
+    </div>
+  </div>
+
+  <!-- ドコモ -->
+  <div class="s-block" style="margin-top:13px;">
+    <div class="s-block-title dt">ドコモ</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">①OP加入</div></div>
+      <input class="s-input" id="s-docomo_op" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②光セット（通常）</div></div>
+      <input class="s-input" id="s-docomo_hikari_base" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②光セット 信賞ボーナス</div><div class="n">信賞店舗ONで上乗せ</div></div>
+      <input class="s-input" id="s-docomo_hikari_shinsho" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">③GOLDカード</div></div>
+      <input class="s-input" id="s-docomo_gold" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">④SILVERカード</div></div>
+      <input class="s-input" id="s-docomo_silver" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑤家族割（1台あたり）</div></div>
+      <input class="s-input" id="s-docomo_kazoku" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑥家電セット（通常）</div></div>
+      <input class="s-input" id="s-docomo_kaden_base" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑥家電セット 信賞ボーナス</div><div class="n">信賞店舗ONで上乗せ</div></div>
+      <input class="s-input" id="s-docomo_kaden_shinsho" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単MNP還元</div></div>
+      <input class="s-input" id="s-docomo_sim_mnp" type="number" min="0" step="500">
+    </div>
+  </div>
+
+  <!-- AU -->
+  <div class="s-block" style="margin-top:13px;">
+    <div class="s-block-title dau">AU</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">①OP加入</div><div class="n">UQ→auは別途 22,000pt</div></div>
+      <input class="s-input" id="s-au_op" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">③GOLDカード（1台あたり）</div><div class="n">同日同店 台数×pt（最低2台〜）</div></div>
+      <input class="s-input" id="s-au_gold" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑤家族割申込</div></div>
+      <input class="s-input" id="s-au_kazoku" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑥家電セット</div></div>
+      <input class="s-input" id="s-au_kaden" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単MNP還元</div></div>
+      <input class="s-input" id="s-au_sim_mnp" type="number" min="0" step="500">
+    </div>
+  </div>
+
+  <!-- SB -->
+  <div class="s-block" style="margin-top:13px;">
+    <div class="s-block-title dsb">SoftBank</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">①OP加入</div></div>
+      <input class="s-input" id="s-sb_op" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②光セット割加入</div></div>
+      <input class="s-input" id="s-sb_hikari" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単MNP還元</div></div>
+      <input class="s-input" id="s-sb_sim_mnp" type="number" min="0" step="500">
+    </div>
+  </div>
+
+  <!-- YM -->
+  <div class="s-block" style="margin-top:13px;">
+    <div class="s-block-title dym">Y!mobile</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">①OP加入</div></div>
+      <input class="s-input" id="s-ym_op" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②光セット割加入</div></div>
+      <input class="s-input" id="s-ym_hikari" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単MNP還元</div></div>
+      <input class="s-input" id="s-ym_sim_mnp" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単新規還元</div><div class="n">※新規も可</div></div>
+      <input class="s-input" id="s-ym_sim_new" type="number" min="0" step="500">
+    </div>
+  </div>
+
+  <!-- UQ -->
+  <div class="s-block" style="margin-top:13px;">
+    <div class="s-block-title duq">UQ</div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②光セット割加入</div><div class="n">既存光もOK</div></div>
+      <input class="s-input" id="s-uq_hikari" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">②でんき同時ボーナス</div></div>
+      <input class="s-input" id="s-uq_denki" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">⑥家電セット</div></div>
+      <input class="s-input" id="s-uq_kaden" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単MNP還元</div></div>
+      <input class="s-input" id="s-uq_sim_mnp" type="number" min="0" step="500">
+    </div>
+    <div class="s-row">
+      <div class="s-row-lbl"><div class="m">SIM単新規還元</div><div class="n">※新規も可</div></div>
+      <input class="s-input" id="s-uq_sim_new" type="number" min="0" step="500">
+    </div>
+  </div>
+  <div class="s-bottom-pad"></div>
+</div>
+
+<!-- 合計バー -->
+<div class="total-bar">
+  <div>
+    <div class="total-lbl">合計ポイント</div>
+    <div class="total-carrier" id="total-carrier">-</div>
+  </div>
+  <div style="display:flex;align-items:center;">
+    <span class="total-num" id="total-num">0</span>
+    <span class="total-unit">pt</span>
+    <button class="reset-btn" onclick="resetAll()">リセット</button>
+  </div>
+</div>
+
+<script>
+/* ═══ デフォルト値 ═══ */
+const DEF = {
+  deadline: '27日（月）',
+  pts: {
+    docomo_op: 11000,
+    docomo_hikari_base: 10000,
+    docomo_hikari_shinsho: 10000,
+    docomo_gold: 20000,
+    docomo_silver: 5000,
+    docomo_kazoku: 20000,
+    docomo_kaden_base: 10000,
+    docomo_kaden_shinsho: 10000,
+    docomo_sim_mnp: 15000,
+    au_op: 11000,
+    au_gold: 5000,
+    au_kazoku: 11000,
+    au_kaden: 10000,
+    au_sim_mnp: 15000,
+    sb_op: 10000,
+    sb_hikari: 10000,
+    sb_sim_mnp: 10000,
+    ym_op: 10000,
+    ym_hikari: 10000,
+    ym_sim_mnp: 15000,
+    ym_sim_new: 10000,
+    uq_hikari: 11000,
+    uq_denki: 5000,
+    uq_kaden: 5000,
+    uq_sim_mnp: 15000,
+    uq_sim_new: 3850,
+  }
+};
+
+/* ═══ 状態 ═══ */
+let S       = loadSettings();
+let carrier = null;
+let prereqs = { bunkatsu: false, shitadori: false };
+let checked = {};
+let units   = {};
+let uqDenki = false;
+let shinsho = false;
+
+function P(k) { return S.pts[k] || 0; }
+
+/* ═══ localStorage ═══ */
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('ptv3');
+    if (raw) {
+      const p = JSON.parse(raw);
+      return { ...DEF, ...p, pts: { ...DEF.pts, ...(p.pts || {}) } };
+    }
+  } catch(e) {}
+  return { ...DEF, pts: { ...DEF.pts } };
+}
+function saveSettings() {
+  localStorage.setItem('ptv3', JSON.stringify(S));
+}
+
+/* ═══ 初期化 ═══ */
+function init() {
+  document.getElementById('deadline-disp').textContent = S.deadline;
+}
+
+/* ═══ キャリア ═══ */
+function selectCarrier(key) {
+  carrier = key; checked = {}; units = {}; uqDenki = false; shinsho = false;
+  document.querySelectorAll('.carrier-btn').forEach(b => b.classList.remove('sel'));
+  document.querySelector('.c-' + key).classList.add('sel');
+  updateShinsho();
+  render();
+  calcTotal();
+}
+
+/* ═══ 信賞店舗 ═══ */
+function updateShinsho() {
+  const sec = document.getElementById('shinsho-section');
+  if (carrier !== 'docomo') { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  document.getElementById('shinsho-sw').className = 'sw' + (shinsho ? ' on' : '');
+  document.getElementById('shinsho-bar').className = 'shinsho-bar' + (shinsho ? ' on' : '');
+  document.getElementById('shinsho-main').textContent = shinsho ? '信賞店舗' : '通常店舗';
+  document.getElementById('shinsho-sub').textContent = shinsho
+    ? `②光 +${P('docomo_hikari_shinsho').toLocaleString()}pt／⑥家電 +${P('docomo_kaden_shinsho').toLocaleString()}pt 増額中`
+    : '信賞店舗に切替で②光・⑥家電が増額';
+}
+function toggleShinsho() {
+  shinsho = !shinsho;
+  updateShinsho();
+  render();
+  calcTotal();
+}
+
+/* ═══ 前提条件 ═══ */
+function togglePrereq(key) {
+  prereqs[key] = !prereqs[key];
+  const el = document.getElementById('pi-' + key);
+  el.classList.toggle('on', prereqs[key]);
+  el.textContent = prereqs[key] ? '✓' : '';
+  render();
+  calcTotal();
+}
+
+/* ═══ 条件データ生成 ═══ */
+function getConds() {
+  if (!carrier) return [];
+  const opOK = prereqs.bunkatsu || prereqs.shitadori;
+  const opNote = opOK ? '分割リセット or 下取り' : '⚠️ 分割リセットか下取りが必要';
+
+  if (carrier === 'docomo') return [
+    { id:'op',      name:'① OP加入',        note: opNote,
+      pts: P('docomo_op'),       reqFail: !opOK },
+    { id:'hikari',  name:'② 光セット割加入', note: shinsho ? `信賞店舗（+${P('docomo_hikari_shinsho').toLocaleString()}pt 増額済）` : '信賞店舗で増額あり',
+      pts: P('docomo_hikari_base') + (shinsho ? P('docomo_hikari_shinsho') : 0) },
+    { id:'gold',    name:'③ GOLDカード',     pts: P('docomo_gold') },
+    { id:'silver',  name:'④ SILVERカード',   pts: P('docomo_silver') },
+    { id:'kazoku',  name:'⑤ 家族割申込',     note:'台数を入力（1台あたり）',
+      pts: P('docomo_kazoku'),   perUnit: true, unitMin: 1 },
+    { id:'kaden',   name:'⑥ 家電セット',     note: shinsho ? `信賞店舗（+${P('docomo_kaden_shinsho').toLocaleString()}pt 増額済）` : '信賞店舗で増額あり',
+      pts: P('docomo_kaden_base') + (shinsho ? P('docomo_kaden_shinsho') : 0) },
+    { id:'sim_mnp', name:'SIM単 MNP還元',    pts: P('docomo_sim_mnp') },
+    { id:'sim_new', name:'SIM単 新規還元',    pts: null },
+  ];
+
+  if (carrier === 'au') return [
+    { id:'op',      name:'① OP加入',         note: opOK ? 'UQ→auの場合は 22,000pt' : '⚠️ 分割リセットか下取りが必要',
+      pts: P('au_op'),           reqFail: !opOK },
+    { id:'hikari',  name:'② 光セット割加入',  pts: 0 },
+    { id:'gold',    name:'③ GOLDカード',      note:'同日同店 台数×pt（最低2台〜）',
+      pts: P('au_gold'),         perUnit: true, unitMin: 2 },
+    { id:'silver',  name:'④ SILVERカード',    pts: 0 },
+    { id:'kazoku',  name:'⑤ 家族割申込',      pts: P('au_kazoku') },
+    { id:'kaden',   name:'⑥ 家電セット',      pts: P('au_kaden') },
+    { id:'sim_mnp', name:'SIM単 MNP還元',     pts: P('au_sim_mnp') },
+    { id:'sim_new', name:'SIM単 新規還元',     pts: null },
+  ];
+
+  if (carrier === 'sb') return [
+    { id:'op',      name:'① OP加入',          note: opNote, pts: P('sb_op'), reqFail: !opOK },
+    { id:'hikari',  name:'② 光セット割加入',   pts: P('sb_hikari') },
+    { id:'gold',    name:'③ GOLDカード',       pts: 0 },
+    { id:'silver',  name:'④ SILVERカード',     pts: 0 },
+    { id:'kazoku',  name:'⑤ 家族割申込',       pts: 0 },
+    { id:'kaden',   name:'⑥ 家電セット',       pts: 0 },
+    { id:'sim_mnp', name:'SIM単 MNP還元',      pts: P('sb_sim_mnp') },
+    { id:'sim_new', name:'SIM単 新規還元',      pts: null },
+  ];
+
+  if (carrier === 'ym') return [
+    { id:'op',      name:'① OP加入',          note: opNote, pts: P('ym_op'), reqFail: !opOK },
+    { id:'hikari',  name:'② 光セット割加入',   pts: P('ym_hikari') },
+    { id:'gold',    name:'③ GOLDカード',       pts: 0 },
+    { id:'silver',  name:'④ SILVERカード',     pts: 0 },
+    { id:'kazoku',  name:'⑤ 家族割申込',       pts: 0 },
+    { id:'kaden',   name:'⑥ 家電セット',       pts: 0 },
+    { id:'sim_mnp', name:'SIM単 MNP還元',      pts: P('ym_sim_mnp') },
+    { id:'sim_new', name:'SIM単 新規還元',      note:'※新規も可', pts: P('ym_sim_new') },
+  ];
+
+  if (carrier === 'uq') return [
+    { id:'op',      name:'① OP加入',           pts: null },
+    { id:'hikari',  name:'② 光セット割加入',    note:'既存光もOK', pts: P('uq_hikari'), uqDenki: true },
+    { id:'gold',    name:'③ GOLDカード',        pts: 0 },
+    { id:'silver',  name:'④ SILVERカード',      pts: 0 },
+    { id:'kazoku',  name:'⑤ 家族割申込',        pts: 0 },
+    { id:'kaden',   name:'⑥ 家電セット',        pts: P('uq_kaden') },
+    { id:'sim_mnp', name:'SIM単 MNP還元',       pts: P('uq_sim_mnp') },
+    { id:'sim_new', name:'SIM単 新規還元',       note:'※新規も可', pts: P('uq_sim_new') },
+  ];
+
+  return [];
+}
+
+/* ═══ レンダリング ═══ */
+function render() {
+  const list = document.getElementById('cond-list');
+  const conds = getConds();
+  if (!conds.length) {
+    list.innerHTML = '<div class="placeholder">⬆️ まずキャリアを選択してください</div>';
+    return;
+  }
+  list.innerHTML = '';
+  conds.forEach(c => {
+    const isOn   = !!checked[c.id];
+    const isNA   = c.pts === null;
+    const isZero = c.pts === 0;
+
+    let ptsHtml;
+    if (isNA)       ptsHtml = `<div class="pts na">対象外</div>`;
+    else if (isZero) ptsHtml = `<div class="pts zero">0 pt</div>`;
+    else {
+      let p = c.pts;
+      if (c.perUnit) p = c.pts * (units[c.id] || c.unitMin || 1);
+      if (c.uqDenki && isOn && uqDenki) p += P('uq_denki');
+      ptsHtml = `<div class="pts">${p.toLocaleString()} pt</div>`;
+    }
+
+    let cls = 'cond-card';
+    if (isOn)        cls += ' on';
+    if (isNA || c.reqFail) cls += ' off-req';
+    else if (isZero) cls += ' off-zero';
+
+    const clickable = !isNA && !isZero && !c.reqFail;
+    const el = document.createElement('div');
+    el.className = cls;
+    if (clickable) el.onclick = () => toggleCond(c.id);
+
+    el.innerHTML = `
+      <div class="cond-row">
+        <div class="cond-chk">${isOn ? '✓' : ''}</div>
+        <div class="cond-info">
+          <div class="cond-name">${c.name}</div>
+          ${c.note ? `<div class="cond-note">${c.note}</div>` : ''}
+        </div>
+        ${ptsHtml}
+      </div>
+      ${buildSub(c, isOn)}`;
+    list.appendChild(el);
+  });
+}
+
+function buildSub(c, isOn) {
+  if (!isOn) return '';
+  if (c.perUnit) {
+    const min = c.unitMin || 1;
+    const val = units[c.id] || min;
+    const lbl = c.id === 'kazoku' ? '家族台数' : '同日同店 台数';
+    return `<div class="sub-row show">
+      <span class="sub-lbl">📌 ${lbl}（${min}台〜）</span>
+      <input class="sub-num" type="number" min="${min}" max="20" value="${val}"
+        oninput="setUnit('${c.id}',this.value,${min});render();"
+        onchange="setUnit('${c.id}',this.value,${min});render();">
+      <span class="sub-unit">台</span>
+    </div>`;
+  }
+  if (c.uqDenki) {
+    return `<div class="sub-row show">
+      <span class="sub-lbl">⚡ でんきも同時契約で +${P('uq_denki').toLocaleString()}pt</span>
+      <div class="sub-chk ${uqDenki?'on':''}" onclick="toggleUqDenki(event)">${uqDenki?'✓':''}</div>
+    </div>`;
+  }
+  return '';
+}
+
+/* ═══ イベント ═══ */
+function toggleCond(id) {
+  checked[id] = !checked[id];
+  if (!checked[id]) { delete units[id]; if (id === 'hikari') uqDenki = false; }
+  render(); calcTotal();
+}
+function toggleUqDenki(e) {
+  e.stopPropagation(); uqDenki = !uqDenki; render(); calcTotal();
+}
+function setUnit(id, val, min) {
+  units[id] = Math.max(min || 1, parseInt(val) || (min || 1));
+  calcTotal();
+}
+
+/* ═══ 合計 ═══ */
+function calcTotal() {
+  const numEl = document.getElementById('total-num');
+  const carEl = document.getElementById('total-carrier');
+  const labels = { docomo:'ドコモ', au:'AU', sb:'SoftBank', ym:'Y!mobile', uq:'UQ' };
+  if (!carrier) { numEl.textContent = '0'; carEl.textContent = '-'; return; }
+  carEl.textContent = labels[carrier];
+  let total = 0;
+  getConds().forEach(c => {
+    if (!checked[c.id] || !c.pts || c.reqFail) return;
+    let p = c.pts;
+    if (c.perUnit) p = c.pts * (units[c.id] || c.unitMin || 1);
+    if (c.uqDenki && uqDenki) p += P('uq_denki');
+    total += p;
+  });
+  numEl.textContent = total.toLocaleString();
+}
+
+/* ═══ リセット ═══ */
+function resetAll() {
+  carrier = null; prereqs = { bunkatsu: false, shitadori: false };
+  checked = {}; units = {}; uqDenki = false; shinsho = false;
+  document.querySelectorAll('.carrier-btn').forEach(b => b.classList.remove('sel'));
+  ['bunkatsu','shitadori'].forEach(k => {
+    const el = document.getElementById('pi-' + k);
+    el.classList.remove('on'); el.textContent = '';
+  });
+  updateShinsho(); render(); calcTotal();
+}
+
+/* ═══ 設定画面 ═══ */
+function openSettings() {
+  document.getElementById('s-deadline').value = S.deadline;
+  Object.keys(S.pts).forEach(k => {
+    const el = document.getElementById('s-' + k);
+    if (el) el.value = S.pts[k];
+  });
+  document.getElementById('settings-screen').classList.add('open');
+}
+
+function closeSettings() {
+  const dl = document.getElementById('s-deadline').value.trim();
+  if (dl) { S.deadline = dl; document.getElementById('deadline-disp').textContent = dl; }
+  Object.keys(S.pts).forEach(k => {
+    const el = document.getElementById('s-' + k);
+    if (el) { const v = parseInt(el.value); if (!isNaN(v) && v >= 0) S.pts[k] = v; }
+  });
+  saveSettings();
+  const msg = document.getElementById('saved-msg');
+  msg.classList.add('show');
+  setTimeout(() => {
+    msg.classList.remove('show');
+    document.getElementById('settings-screen').classList.remove('open');
+    render(); calcTotal();
+  }, 800);
+}
+
+init();
+</script>
+</body>
+</html>
