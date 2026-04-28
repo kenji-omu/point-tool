@@ -347,24 +347,6 @@ async function saveToSheet(pin) {
   showLoading(true);
 
   try {
-    let currentConfig;
-
-    try {
-      const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
-      const data = await res.json();
-      currentConfig = data.config || {};
-    } catch (e) {
-      showLoading(false);
-      alert('通信エラー: ' + e.message);
-      return false;
-    }
-
-    if (!currentConfig.pin || String(currentConfig.pin) !== String(pin)) {
-      showLoading(false);
-      alert('PINが違います');
-      return false;
-    }
-
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -378,15 +360,12 @@ async function saveToSheet(pin) {
       })
     });
 
-    await new Promise(r => setTimeout(r, 2000));
-
     alert('保存しました。画面を更新します。');
     location.reload();
-
     return true;
 
   } catch (e) {
-    alert('保存処理は送信しました。画面を更新します。');
+    alert('保存処理を送信しました。画面を更新します。');
     location.reload();
     return true;
 
@@ -605,24 +584,26 @@ async function saveSettings() {
   if (dl) draftConfig.deadline = dl;
 
   const btn = document.getElementById('s-save-btn');
-  btn.disabled = true; btn.textContent = '保存中...';
+  btn.disabled = true;
+  btn.textContent = '保存中...';
 
-  let ok = false;
   if (SCRIPT_URL) {
-    ok = await saveToSheet(enteredPin);
-    if (ok) { await loadFromSheet(); }
-  } else {
-    // ローカル保存（SCRIPT_URL未設定時）
-    config     = draftConfig;
-    conditions = draftConditions;
-    ok = true;
+    await saveToSheet(enteredPin);
+    return;
   }
 
-  btn.disabled = false; btn.textContent = '💾 全員に反映';
-  if (ok) {
-    updateDeadline(); render(); calcTotal(); updateShinsho();
-    document.getElementById('settings-screen').classList.remove('open');
-  }
+  config = draftConfig;
+  conditions = draftConditions;
+
+  btn.disabled = false;
+  btn.textContent = '💾 全員に反映';
+
+  updateDeadline();
+  render();
+  calcTotal();
+  updateShinsho();
+  document.getElementById('settings-screen').classList.remove('open');
+}
 }
 
 /* ── 条件エディタ ── */
