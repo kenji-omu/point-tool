@@ -342,27 +342,36 @@ async function saveToSheet(pin) {
   if (!SCRIPT_URL) { alert('SCRIPT_URLが設定されていません'); return false; }
   showLoading(true);
 
-  // Step1: PINをGETで確認（短いURL、CORS問題なし）
+  // Step1: GETでデータ取得 → その中のPINで確認（別エンドポイント不要）
+  let currentConfig;
   try {
-    const vRes = await fetch(SCRIPT_URL + '?action=verify&pin=' + encodeURIComponent(pin) + '&t=' + Date.now());
-    const vData = await vRes.json();
-    if (!vData.valid) { showLoading(false); alert('PINが違います'); return false; }
-  } catch(e) { showLoading(false); alert('通信エラー: ' + e.message); return false; }
+    const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const data = await res.json();
+    currentConfig = data.config || {};
+  } catch(e) {
+    showLoading(false);
+    alert('通信エラー: ' + e.message);
+    return false;
+  }
 
-  // Step2: データをno-cors POSTで送信（レスポンスは読めないが、Apps Scriptのdopostは実行される）
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }),
-    });
-  } catch(e) { /* no-corsでは基本的にエラーにならない */ }
+  if (!currentConfig.pin || String(currentConfig.pin) !== String(pin)) {
+    showLoading(false);
+    alert('PINが違います（シートのPIN: ' + (currentConfig.pin || '未設定') + '）');
+    return false;
+  }
+
+  // Step2: no-cors POSTで保存（Apps ScriptのdoPostが実行される）
+  await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }),
+  }).catch(() => {});
 
   // Step3: Apps Scriptの処理を待つ
   await new Promise(r => setTimeout(r, 3000));
 
-  // Step4: 最新データを再取得して画面に反映
+  // Step4: 再取得して画面を更新
   await loadFromSheet();
   showLoading(false);
   return true;
