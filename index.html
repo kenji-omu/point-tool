@@ -342,15 +342,12 @@ async function saveToSheet(pin) {
   if (!SCRIPT_URL) { alert('SCRIPT_URLが設定されていません'); return false; }
   showLoading(true);
   try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }),
-    });
+    const payload = encodeURIComponent(JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }));
+    const res = await fetch(SCRIPT_URL + '?action=save&data=' + payload);
     const data = await res.json();
     showLoading(false);
     if (data.error) { alert(data.error); return false; }
-    return data.success;
+    return !!data.success;
   } catch(e) {
     showLoading(false);
     alert('保存に失敗しました。\n' + e.message);
