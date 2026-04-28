@@ -339,42 +339,60 @@ async function loadFromSheet() {
 }
 
 async function saveToSheet(pin) {
-  if (!SCRIPT_URL) { alert('SCRIPT_URLが設定されていません'); return false; }
+  if (!SCRIPT_URL) {
+    alert('SCRIPT_URLが設定されていません');
+    return false;
+  }
+
   showLoading(true);
 
-  // Step1: GETでデータ取得 → その中のPINで確認（別エンドポイント不要）
-  let currentConfig;
   try {
-    const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
-    const data = await res.json();
-    currentConfig = data.config || {};
-  } catch(e) {
+    let currentConfig;
+
+    try {
+      const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
+      const data = await res.json();
+      currentConfig = data.config || {};
+    } catch (e) {
+      showLoading(false);
+      alert('通信エラー: ' + e.message);
+      return false;
+    }
+
+    if (!currentConfig.pin || String(currentConfig.pin) !== String(pin)) {
+      showLoading(false);
+      alert('PINが違います');
+      return false;
+    }
+
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        pin,
+        config: draftConfig,
+        conditions: draftConditions
+      })
+    });
+
+    await new Promise(r => setTimeout(r, 2000));
+
+    alert('保存しました。画面を更新します。');
+    location.reload();
+
+    return true;
+
+  } catch (e) {
+    alert('保存処理は送信しました。画面を更新します。');
+    location.reload();
+    return true;
+
+  } finally {
     showLoading(false);
-    alert('通信エラー: ' + e.message);
-    return false;
   }
-
-  if (!currentConfig.pin || String(currentConfig.pin) !== String(pin)) {
-    showLoading(false);
-    alert('PINが違います（シートのPIN: ' + (currentConfig.pin || '未設定') + '）');
-    return false;
-  }
-
-  // Step2: no-cors POSTで保存（Apps ScriptのdoPostが実行される）
-  await fetch(SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }),
-  }).catch(() => {});
-
-  // Step3: Apps Scriptの処理を待つ
-  await new Promise(r => setTimeout(r, 3000));
-
-  // Step4: 再取得して画面を更新
-  await loadFromSheet();
-  showLoading(false);
-  return true;
 }
 
 function showLoading(v) {
