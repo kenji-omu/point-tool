@@ -360,21 +360,22 @@ async function saveToSheet(pin) {
     return false;
   }
 
-  // Step2: no-cors POSTで保存（Apps ScriptのdoPostが実行される）
-  await fetch(SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ pin, config: draftConfig, conditions: draftConditions }),
-  }).catch(() => {});
-
-  // Step3: Apps Scriptの処理を待つ
-  await new Promise(r => setTimeout(r, 3000));
-
-  // Step4: 再取得して画面を更新
-  await loadFromSheet();
-  showLoading(false);
-  return true;
+  // Step2: Base64 GETで保存（日本語も安全、レスポンスも読める）
+  try {
+    const json = JSON.stringify({ pin, config: draftConfig, conditions: draftConditions });
+    const b64  = btoa(unescape(encodeURIComponent(json)));
+    const url  = SCRIPT_URL + '?action=save&t=' + Date.now() + '&data=' + encodeURIComponent(b64);
+    const res  = await fetch(url);
+    const result = await res.json();
+    showLoading(false);
+    if (result.error) { alert('保存エラー: ' + result.error); return false; }
+    await loadFromSheet();
+    return !!result.success;
+  } catch(e) {
+    showLoading(false);
+    alert('保存に失敗しました: ' + e.message);
+    return false;
+  }
 }
 
 function showLoading(v) {
