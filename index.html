@@ -56,6 +56,7 @@ body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f2f
 .cond-card:active { opacity: 0.85; }
 .cond-card.on { border-color: #30d158; background: #f0fff5; }
 .cond-card.off-zero, .cond-card.off-req { opacity: 0.38; pointer-events: none; }
+.cond-card.off-mutual { opacity: 0.35; filter: grayscale(1); pointer-events: none; }
 .cond-row { display: flex; align-items: center; gap: 11px; padding: 13px 14px; }
 .cond-chk { width: 30px; height: 30px; border: 2px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .cond-card.on .cond-chk { background: #30d158; border-color: #30d158; color: #fff; }
@@ -465,8 +466,10 @@ function render() {
     const ptsHtml = isZero
       ? `<div class="pts zero">0 pt</div>`
       : `<div class="pts">${calcPts(c).toLocaleString()} pt</div>`;
+    const isMutual = (c.id === 'hikari' && checked['kaden']) || (c.id === 'kaden' && checked['hikari']);
     let cls = 'cond-card' + (isOn ? ' on' : '');
     if (c.reqFail) cls += ' off-req';
+    else if (isMutual) cls += ' off-mutual';
     else if (isZero) cls += ' off-zero';
     const el = document.createElement('div');
     el.className = cls;
