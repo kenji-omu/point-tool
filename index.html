@@ -333,6 +333,7 @@ async function loadFromSheet() {
         id: String(c.id), name: String(c.name || ''), note: String(c.note || ''),
         needs_prereq: +c.needs_prereq || 0, docomo_unit_min: +c.docomo_unit_min || 0,
         au_unit_min: +c.au_unit_min || 0,   uq_denki: +c.uq_denki || 0,
+        docomo_note: String(c.docomo_note || ''),
         docomo: +c.docomo || 0, docomo_shinsho: +c.docomo_shinsho || 0,
         au: +c.au || 0, sb: +c.sb || 0, ym: +c.ym || 0, uq: +c.uq || 0,
       }));
