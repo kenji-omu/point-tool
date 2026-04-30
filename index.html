@@ -57,6 +57,8 @@ body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f2f
 .cond-card.on { border-color: #30d158; background: #f0fff5; }
 .cond-card.off-zero, .cond-card.off-req { opacity: 0.38; pointer-events: none; }
 .cond-card.off-mutual { opacity: 0.35; filter: grayscale(1); pointer-events: none; }
+.pts-wrap { display: flex; flex-direction: column; align-items: flex-end; }
+.pts-note { font-size: 11px; color: #8e8e93; margin-top: 2px; white-space: nowrap; }
 .cond-row { display: flex; align-items: center; gap: 11px; padding: 13px 14px; }
 .cond-chk { width: 30px; height: 30px; border: 2px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .cond-card.on .cond-chk { background: #30d158; border-color: #30d158; color: #fff; }
@@ -296,14 +298,14 @@ const C_LABEL  = { docomo:'ドコモ', au:'AU', sb:'SoftBank', ym:'Y!mobile', uq
 
 const DEFAULT_CONFIG = { deadline: '27日（月）', pin: '1234' };
 const DEFAULT_CONDITIONS = [
-  { id:'op',      name:'①OP加入',       note:'分割リセット or 下取り', needs_prereq:1, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:11000, docomo_shinsho:0,     au:11000, sb:10000, ym:10000, uq:0     },
-  { id:'hikari',  name:'②光セット割加入', note:'信賞店舗で増額あり',    needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:1, docomo:10000, docomo_shinsho:10000, au:0,     sb:10000, ym:10000, uq:11000 },
-  { id:'gold',    name:'③GOLDカード',    note:'AU:同日同店台数×pt',    needs_prereq:0, docomo_unit_min:0, au_unit_min:2, uq_denki:0, docomo:20000, docomo_shinsho:0,     au:5000,  sb:0,     ym:0,     uq:0     },
-  { id:'silver',  name:'④SILVERカード',  note:'',                     needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:5000,  docomo_shinsho:0,     au:0,     sb:0,     ym:0,     uq:0     },
-  { id:'kazoku',  name:'⑤家族割申込',    note:'ドコモ:台当たり',       needs_prereq:0, docomo_unit_min:1, au_unit_min:0, uq_denki:0, docomo:20000, docomo_shinsho:0,     au:11000, sb:0,     ym:0,     uq:0     },
-  { id:'kaden',   name:'⑥家電セット',    note:'信賞店舗で増額（ドコモ）', needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:10000, docomo_shinsho:10000, au:10000, sb:0,     ym:0,     uq:5000  },
-  { id:'sim_mnp', name:'SIM単MNP還元',   note:'',                     needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:15000, docomo_shinsho:0,     au:15000, sb:10000, ym:15000, uq:15000 },
-  { id:'sim_new', name:'SIM単新規還元',   note:'※新規も可',            needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:0,     docomo_shinsho:0,     au:0,     sb:0,     ym:10000, uq:3850  },
+  { id:'op',      name:'①OP加入',       note:'分割リセット or 下取り', needs_prereq:1, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'',           docomo:11000, docomo_shinsho:0,     au:11000, sb:10000, ym:10000, uq:0     },
+  { id:'hikari',  name:'②光セット割加入', note:'信賞店舗で増額あり',    needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:1, docomo_note:'',           docomo:10000, docomo_shinsho:10000, au:0,     sb:10000, ym:10000, uq:11000 },
+  { id:'gold',    name:'③GOLDカード',    note:'AU:同日同店台数×pt',    needs_prereq:0, docomo_unit_min:0, au_unit_min:2, uq_denki:0, docomo_note:'',           docomo:20000, docomo_shinsho:0,     au:5000,  sb:0,     ym:0,     uq:0     },
+  { id:'silver',  name:'④SILVERカード',  note:'',                     needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'',           docomo:5000,  docomo_shinsho:0,     au:0,     sb:0,     ym:0,     uq:0     },
+  { id:'kazoku',  name:'⑤家族割申込',    note:'',                     needs_prereq:0, docomo_unit_min:1, au_unit_min:0, uq_denki:0, docomo_note:'でんき台あたり', docomo:20000, docomo_shinsho:0,     au:11000, sb:0,     ym:0,     uq:0     },
+  { id:'kaden',   name:'⑥家電セット',    note:'信賞店舗で増額（ドコモ）', needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'',           docomo:10000, docomo_shinsho:10000, au:10000, sb:0,     ym:0,     uq:5000  },
+  { id:'sim_mnp', name:'SIM単MNP還元',   note:'',                     needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'',           docomo:15000, docomo_shinsho:0,     au:15000, sb:10000, ym:15000, uq:15000 },
+  { id:'sim_new', name:'SIM単新規還元',   note:'※新規も可',            needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'',           docomo:0,     docomo_shinsho:0,     au:0,     sb:0,     ym:10000, uq:3850  },
 ];
 
 /* ── 状態 ── */
@@ -442,6 +444,7 @@ function getConds() {
       id:       c.id,
       name:     c.name,
       note:     c.note || '',
+      docomo_note: carrier === 'docomo' ? c.docomo_note || '' : '',
       pts,
       reqFail:  +c.needs_prereq === 1 && !opOK,
       perUnit:  unitMin > 0,
@@ -465,7 +468,7 @@ function render() {
     const isZero = c.pts === 0;
     const ptsHtml = isZero
       ? `<div class="pts zero">0 pt</div>`
-      : `<div class="pts">${calcPts(c).toLocaleString()} pt</div>`;
+      : `<div class="pts-wrap"><div class="pts">${calcPts(c).toLocaleString()} pt</div>${c.docomo_note ? `<div class="pts-note">${esc(c.docomo_note)}</div>` : ''}</div>`;
     const isMutual = (c.id === 'hikari' && checked['kaden']) || (c.id === 'kaden' && checked['hikari']);
     let cls = 'cond-card' + (isOn ? ' on' : '');
     if (c.reqFail) cls += ' off-req';
@@ -681,6 +684,10 @@ function buildCondBody(c) {
         <span class="s-shinsho-lbl">信賞ボーナス</span>
         <input class="s-pts-input" type="number" min="0" step="500" value="${+c.docomo_shinsho||0}" oninput="updCond('${c.id}','docomo_shinsho',+this.value)">
       </div>
+      <div class="s-field" style="margin-top:6px;">
+        <div class="s-field-label">ドコモ補足メモ（pt横に表示）</div>
+        <input class="s-field-input" value="${esc(c.docomo_note||'')}" placeholder="例：でんき台あたり" oninput="updCond('${c.id}','docomo_note',this.value)">
+      </div>
       ${['au','sb','ym','uq'].map(k => `
       <div class="s-pts-row">
         <span class="s-carrier-badge ${k}">${C_LABEL[k]}</span>
@@ -701,7 +708,7 @@ function moveUp(i)   { if (i===0) return; [draftConditions[i-1],draftConditions[
 function moveDown(i) { if (i===draftConditions.length-1) return; [draftConditions[i],draftConditions[i+1]]=[draftConditions[i+1],draftConditions[i]]; renderCondEditor(); }
 function addCondition() {
   const id = 'c' + Date.now();
-  draftConditions.push({ id, name:'新しい条件', note:'', needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo:0, docomo_shinsho:0, au:0, sb:0, ym:0, uq:0 });
+  draftConditions.push({ id, name:'新しい条件', note:'', needs_prereq:0, docomo_unit_min:0, au_unit_min:0, uq_denki:0, docomo_note:'', docomo:0, docomo_shinsho:0, au:0, sb:0, ym:0, uq:0 });
   expandedId = id;
   renderCondEditor();
   setTimeout(() => document.getElementById('settings-screen').scrollTo({ top: 99999, behavior: 'smooth' }), 100);
